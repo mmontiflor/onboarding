@@ -275,6 +275,30 @@ tr:hover td{background:rgba(206,221,239,0.25);}
     </div>
     <div class="sidebar-hr"></div>
     <div class="sidebar-section">
+      <div class="sidebar-label">By Status</div>
+      <div class="nav-item" data-page="s-review">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        For Review
+        <span class="nav-badge" id="nb-review">—</span>
+      </div>
+      <div class="nav-item" data-page="s-inprog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
+        In Progress
+        <span class="nav-badge" id="nb-inprog">—</span>
+      </div>
+      <div class="nav-item" data-page="s-approval">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Approval
+        <span class="nav-badge" id="nb-approval">—</span>
+      </div>
+      <div class="nav-item" data-page="s-contract">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+        Contract
+        <span class="nav-badge" id="nb-contract">—</span>
+      </div>
+    </div>
+    <div class="sidebar-hr"></div>
+    <div class="sidebar-section">
       <div class="sidebar-label">By Category</div>
       <div class="nav-item" data-page="clients">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -358,6 +382,7 @@ tr:hover td{background:rgba(206,221,239,0.25);}
           <div class="kpi" data-kpi="clients"><span class="kpi-arrow">↗</span><div class="kpi-label">Unique Clients</div><div class="kpi-value" id="k-clients">—</div><div class="kpi-sub">being deployed to</div></div>
           <div class="kpi" data-kpi="locations"><span class="kpi-arrow">↗</span><div class="kpi-label">Locations</div><div class="kpi-value" id="k-locations">—</div><div class="kpi-sub">reporting sites</div></div>
         </div>
+        <div class="status-row" id="status-bar"></div>
         <div class="active-filters" id="active-filters">
           <span class="filter-label">Filtered by</span>
           <span id="filter-chips"></span>
@@ -593,7 +618,7 @@ function loadData(rows,filename){
   filtered=[...allRows];pg=0;
   hiddenLocs.clear();CF={month:null,location:null,status:null,week:false};
   DF={month:'',location:'',status:'',client:''};isDrill=false;drillMonth=null;
-  buildKPIs();buildMonthChart();buildLocChart();buildDropdowns();renderTable();
+  buildKPIs();buildStatusBar();buildMonthChart();buildLocChart();buildDropdowns();renderTable();
   document.getElementById('drop-zone').style.display='none';
   document.getElementById('overview-content').style.display='block';
   document.getElementById('file-meta').textContent=`${filename} · ${new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})} · ${rows.length} employees`;
@@ -640,6 +665,19 @@ function buildKPIs(){
   document.getElementById('nb-nextmonth').textContent=nRows.length;
   document.getElementById('nb-clients').textContent=cls;
   document.getElementById('nb-locations').textContent=lcs;
+  const sc={};allRows.forEach(r=>{sc[r.status]=(sc[r.status]||0)+1;});
+  document.getElementById('nb-review').textContent=sc['For Review']||0;
+  document.getElementById('nb-inprog').textContent=sc['Onboarding In Progress']||0;
+  document.getElementById('nb-approval').textContent=sc['Approval In Progress']||0;
+  document.getElementById('nb-contract').textContent=sc['Contract In Progress']||0;
+}
+
+// ── Status breakdown row (Overview) ───────────────────────────────────────────
+function buildStatusBar(){
+  const sc={};allRows.forEach(r=>{sc[r.status]=(sc[r.status]||0)+1;});
+  document.getElementById('status-bar').innerHTML=Object.entries(sc).map(([s,c])=>
+    `<div class="status-pill ${SCP[s]||''}"><span>${s}</span><span class="pill-count">${c}</span></div>`
+  ).join('');
 }
 
 // ── Month chart ──────────────────────────────────────────────────────────────
@@ -810,6 +848,10 @@ function buildScoped(pid){
     case'nextmonth':rows=allRows.filter(r=>r.start.getMonth()===nM&&r.start.getFullYear()===nY);title='Next Month';sub=new Date(nY,nM).toLocaleDateString('en-US',{month:'long',year:'numeric'});break;
     case'clients':rows=[...allRows].sort((a,b)=>a.client.localeCompare(b.client));title='Unique Clients';sub=`${new Set(allRows.map(r=>r.client)).size} clients · all onboarding`;break;
     case'locations':rows=[...allRows].sort((a,b)=>a.location.localeCompare(b.location));title='Reporting Locations';sub=`${new Set(allRows.map(r=>r.location)).size} distinct sites`;break;
+    case's-review':rows=allRows.filter(r=>r.status==='For Review');title='For Review';sub=`${rows.length} employees`;break;
+    case's-inprog':rows=allRows.filter(r=>r.status==='Onboarding In Progress');title='Onboarding In Progress';sub=`${rows.length} employees`;break;
+    case's-approval':rows=allRows.filter(r=>r.status==='Approval In Progress');title='Approval In Progress';sub=`${rows.length} employees`;break;
+    case's-contract':rows=allRows.filter(r=>r.status==='Contract In Progress');title='Contract In Progress';sub=`${rows.length} employees`;break;
     default:rows=allRows;title='All Onboarding';sub=`${allRows.length} employees`;
   }
   scopeRows=rows.sort((a,b)=>a.start-b.start);scopeFiltered=[...scopeRows];sPg=0;
